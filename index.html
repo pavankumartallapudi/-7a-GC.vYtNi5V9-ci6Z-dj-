@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://example.com/my-icon.png">
+    <title>Pavan Kumar Tallapudi - Final Design</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', sans-serif; }
+        
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #d4af37; font-size: 1rem; letter-spacing: 4px; font-weight: 300;
+            pointer-events: none; transition: opacity 0.5s; text-transform: uppercase;
+        }
+        
+        /* --- UPDATED TEXT POSITION --- */
+        #instruction {
+            position: absolute; 
+            top: 12%; /* Moved to Top with padding */
+            width: 100%; 
+            text-align: center;
+            color: #555; 
+            font-size: 0.75rem; 
+            letter-spacing: 2px; 
+            pointer-events: none;
+            opacity: 0; 
+            transition: opacity 2s;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Just a Sec...</div>
+    <div id="instruction">SPINNING... CLICK TO READ BACK</div>
+     <script>
+  document.addEventListener('contextmenu', event => event.preventDefault());
+  document.onkeydown = function(e) {
+    if(event.keyCode == 123) { // Blocks F12
+      return false;
+    }
+    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { // Blocks Ctrl+Shift+I
+      return false;
+    }
+  }
+</script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'; 
+        import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+        import TWEEN from 'three/addons/libs/tween.module.js';
+
+        // ==========================================
+        //       USER CONFIGURATION
+        // ==========================================
+        const CARD_CONTENT = {
+            front: [
+                { text: "PAVAN KUMAR\nTALLAPUDI", size: 0.5, y: 1.2 },
+                { text: "23 Yrs", size: 0.25, y: -0.2 },
+                { text: "534244, Vissakoderu", size: 0.25, y: -0.6 },
+                { text: "pavankumartallapudi5654@gmail.com", size: 0.22, y: -1.5 }
+
+            ],
+            back: [
+                { text: "EMERGENCY CONTACT", size: 0.4, y: 1.2 },
+                { text: "RELATION: BROTHER", size: 0.25, y: 0.3 },
+                { text: "+91 99887 76655", size: 0.25, y: -0.2 },
+                { text: "BLOOD GROUP: O+", size: 0.3, y: -1.0 }
+            ]
+        };
+
+        const COLORS = {
+            black: 0x080808,
+            gold: 0xffd700,
+            lightRed: 0xff8888, 
+            redGlow: 0xff4444 
+        };
+
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505); 
+        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMappingExposure = 1.0;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        RectAreaLightUniformsLib.init();
+
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        const staticSpot = new THREE.SpotLight(0xffeebb, 8); 
+        staticSpot.position.set(10, 10, 10);
+        staticSpot.angle = 0.5;
+        staticSpot.penumbra = 1;
+        scene.add(staticSpot);
+
+        // GLARE LIGHT
+        const glareLight = new THREE.RectAreaLight(0xffffff, 0, 0.2, 12); 
+        glareLight.position.set(-15, 0, 5); 
+        glareLight.lookAt(-15, 0, 0); 
+        scene.add(glareLight);
+
+        // --- MATERIALS ---
+        const materialMatteBlack = new THREE.MeshStandardMaterial({
+            color: 0x111111, 
+            roughness: 0.7, 
+            metalness: 0.1,
+        });
+
+        const materialGold = new THREE.MeshStandardMaterial({
+            color: COLORS.gold,
+            emissive: 0x332200, 
+            emissiveIntensity: 0.2, 
+            roughness: 0.35,        
+            metalness: 0.9,
+            envMapIntensity: 1.0
+        });
+
+        const materialRed = new THREE.MeshStandardMaterial({
+            color: COLORS.lightRed, 
+            emissive: COLORS.redGlow,
+            emissiveIntensity: 0.6, 
+            roughness: 0.4,
+            metalness: 0.5,
+        });
+
+        // --- GEOMETRY ---
+        const cardGroup = new THREE.Group();
+        scene.add(cardGroup);
+
+        const loader = new FontLoader();
+        loader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', function (font) {
+            createCard(font);
+            
+            document.getElementById('loading').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('loading').remove();
+                document.getElementById('instruction').style.opacity = 1;
+                startGlareLoop(); 
+            }, 800);
+        });
+
+        function createCard(font) {
+            const width = 9;
+            const height = 5.6;
+            const depth = 0.1;
+            const radius = 0.3;
+
+            // Body
+            const shape = roundedRectShape(width, height, radius);
+            const geoBody = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
+            const meshBody = new THREE.Mesh(geoBody, materialMatteBlack);
+            meshBody.castShadow = true;
+            meshBody.receiveShadow = true;
+            meshBody.geometry.center();
+            cardGroup.add(meshBody);
+
+            // Gold Rim
+            const shapeRim = roundedRectOutline(width, height, radius, 0.1);
+            const geoRim = new THREE.ExtrudeGeometry(shapeRim, { depth: depth + 0.02, bevelEnabled: true, bevelThickness:0.02, bevelSize:0.02, bevelSegments:3 });
+            const meshRim = new THREE.Mesh(geoRim, materialGold);
+            meshRim.geometry.center();
+            meshRim.castShadow = true;
+            meshRim.receiveShadow = true;
+            cardGroup.add(meshRim);
+
+            // FRONT TEXT
+            const front = new THREE.Group();
+            front.position.z = depth/2 + 0.01; 
+            CARD_CONTENT.front.forEach(item => {
+                createAligned3DText(item.text, font, item.size, -3.5, item.y, materialGold, front);
+            });
+            cardGroup.add(front);
+
+            // BACK TEXT
+            const back = new THREE.Group();
+            back.position.z = -depth/2 - 0.01; 
+            CARD_CONTENT.back.forEach(item => {
+                createAligned3DText(item.text, font, item.size, -3.5, item.y, materialRed, back, true);
+            });
+            cardGroup.add(back);
+        }
+
+        function createAligned3DText(text, font, size, x, y, material, parent, isBack = false) {
+            const geo = new TextGeometry(text, {
+                font: font,
+                size: size,
+                height: 0.03,
+                curveSegments: 6,
+                bevelEnabled: true,
+                bevelThickness: 0.01,
+                bevelSize: 0.005,
+                bevelSegments: 3
+            });
+            
+            geo.computeBoundingBox();
+            const xMin = geo.boundingBox.min.x;
+            geo.translate(-xMin, 0, 0);
+
+            const mesh = new THREE.Mesh(geo, material);
+
+            if (isBack) {
+                // Correct 180 rotation for Back Text
+                mesh.rotation.y = Math.PI;
+                mesh.position.set(-x, y, 0);
+            } else {
+                mesh.position.set(x, y, 0);
+            }
+            
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            parent.add(mesh);
+        }
+
+        function roundedRectShape(width, height, radius) {
+            const ctx = new THREE.Shape();
+            const x = -width/2, y = -height/2;
+            ctx.moveTo(x, y + radius);
+            ctx.lineTo(x, y + height - radius);
+            ctx.quadraticCurveTo(x, y + height, x + radius, y + height);
+            ctx.lineTo(x + width - radius, y + height);
+            ctx.quadraticCurveTo(x + width, y + height, x + width, y + height - radius);
+            ctx.lineTo(x + width, y + radius);
+            ctx.quadraticCurveTo(x + width, y, x + width - radius, y);
+            ctx.lineTo(x + radius, y);
+            ctx.quadraticCurveTo(x, y, x, y + radius);
+            return ctx;
+        }
+        function roundedRectOutline(w, h, r, t) {
+            const s = roundedRectShape(w, h, r);
+            const hole = roundedRectShape(w-t, h-t, r);
+            s.holes.push(hole);
+            return s;
+        }
+
+        // --- POST PROCESSING ---
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        
+        const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloom.threshold = 0.75; 
+        bloom.strength = 0.4; 
+        bloom.radius = 0.4;
+        composer.addPass(bloom);
+
+        function resize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.position.z = aspect < 1 ? 25 : 16;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- ANIMATION CONTROLLER ---
+        function startGlareLoop() {
+            glareLight.position.x = -15; 
+            glareLight.intensity = 50; 
+
+            new TWEEN.Tween(glareLight.position)
+                .to({ x: 15 }, 2000) 
+                .easing(TWEEN.Easing.Linear.None) 
+                .onComplete(() => {
+                    glareLight.intensity = 0; 
+                    setTimeout(startGlareLoop, 2000); 
+                })
+                .start();
+        }
+
+        // --- INTERACTION LOGIC ---
+        let autoRotate = true; 
+        let isAnimating = false; 
+        let isBack = false; 
+
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        document.addEventListener('click', () => {
+            if(isAnimating) return;
+            isAnimating = true;
+
+            if (autoRotate) {
+                autoRotate = false; // STOP rotation
+                isBack = true; 
+                document.getElementById('instruction').innerText = "READING MODE | CLICK TO FLIP";
+            } else {
+                isBack = !isBack;
+            }
+
+            // Smart shortest-path rotation calculation
+            const currentRot = cardGroup.rotation.y;
+            const rounds = Math.floor(currentRot / (Math.PI * 2));
+            
+            let targetRot;
+            
+            if (isBack) {
+                targetRot = (rounds * Math.PI * 2) - Math.PI;
+                if (currentRot < targetRot) targetRot -= (Math.PI * 2);
+            } else {
+                targetRot = (rounds * Math.PI * 2);
+                if (currentRot < targetRot - Math.PI) targetRot -= (Math.PI * 2);
+            }
+
+            new TWEEN.Tween(cardGroup.rotation)
+                .to({ y: targetRot }, 800) 
+                .easing(TWEEN.Easing.Back.Out) 
+                .onComplete(() => { 
+                    isAnimating = false; 
+                })
+                .start();
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+
+            if (autoRotate && !isAnimating) {
+                cardGroup.rotation.y -= 0.002; 
+            }
+
+            if (!isAnimating) {
+                const targetX = mouseY * 0.2; 
+                cardGroup.rotation.x += (targetX - cardGroup.rotation.x) * 0.05;
+            }
+
+            composer.render();
+        }
+        animate();
+    </script>
+</body>
+</html>
