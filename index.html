@@ -303,10 +303,7 @@
 
         let mouseX = 0, mouseY = 0;
 
-        document.addEventListener('mousemove', (e) => {
-            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-        });
+        
 
         document.addEventListener('click', () => {
             if(isAnimating) return;
@@ -363,3 +360,4 @@
 </body>
 
 </html>
+
